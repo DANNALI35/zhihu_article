@@ -2,7 +2,7 @@
 """
 @author: danna.li
 @date: 2019/1/19
-@file: preprocessing.py
+@file: align_face.py
 @description: align and crop face, transfer landmarks accordingly
 """
 import math
@@ -90,13 +90,12 @@ def rotate_landmarks(landmarks, eye_center, angle, row):
     return rotated_landmarks
 
 
-def corp_face(image_array, size, landmarks):
+def corp_face(image_array, landmarks):
     """ crop face according to eye,mouth and chin position
     :param image_array: numpy array of a single image
-    :param size: single int value, w and h to resize cropped images
     :param landmarks: dict of landmarks for facial parts as keys and tuple of coordinates as values
     :return:
-    cropped_img: numpy array of cropped and resized image
+    cropped_img: numpy array of cropped image
     """
 
     eye_landmark = np.concatenate([np.array(landmarks['left_eye']),
@@ -119,15 +118,28 @@ def corp_face(image_array, size, landmarks):
     left, top, right, bottom = [int(i) for i in [left, top, right, bottom]]
     cropped_img = pil_img.crop((left, top, right, bottom))
     cropped_img = np.array(cropped_img)
-    resized_img = cv2.resize(cropped_img, (size, size))
-    return resized_img
+    return cropped_img, left, top
 
 
-def face_process(image, landmark_model_type='large', crop_size=140):
+def transfer_landmark(landmarks, left, top):
+    """transfer landmarks to fit the cropped face
+    :param landmarks: dict of landmarks for facial parts as keys and tuple of coordinates as values
+    :param left: left coordinates of cropping
+    :param top: top coordinates of cropping
+    :return: transferred_landmarks with the same structure with landmarks, but different values
+    """
+    transferred_landmarks = defaultdict(list)
+    for facial_feature in landmarks.keys():
+        for landmark in landmarks[facial_feature]:
+            transferred_landmark = (landmark[0] - left, landmark[1] - top)
+            transferred_landmarks[facial_feature].append(transferred_landmark)
+    return transferred_landmarks
+
+
+def face_process(image, landmark_model_type='large'):
     """ for a given image, do face alignment and crop face
     :param image: numpy array of a single image
     :param landmark_model_type: 'large' returns 68 landmarks; 'small' return 5 landmarks
-    :param crop_size: ingle int value, size for w and h after crop
     :return:
     cropped_face: image array with face aligned and cropped
     transferred_landmarks: landmarks that fit cropped_face
@@ -140,8 +152,10 @@ def face_process(image, landmark_model_type='large', crop_size=140):
     rotated_landmarks = rotate_landmarks(landmarks=face_landmarks_dict,
                                          eye_center=eye_center, angle=angle, row=image.shape[0])
     # crop face according to landmarks
-    cropped_face = corp_face(image_array=aligned_face, size=crop_size, landmarks=rotated_landmarks)
-    return cropped_face
+    cropped_face = corp_face(image_array=aligned_face, landmarks=rotated_landmarks)
+    # transfer landmarks to fit the cropped face
+    transferred_landmarks = transfer_landmark(landmarks=rotated_landmarks, left=left, top=top)
+    return cropped_face, transferred_landmarks
 
 
 def visualize_landmark(image_array, landmarks):
@@ -166,4 +180,9 @@ if __name__ == '__main__':
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     # process the face image
-    face = face_process(image=img, landmark_model_type='large', crop_size=140)
+    face, landmarks = face_preprocess(image=image_array,
+                                      landmark_model_type='large',
+                                      crop_size=140)
+
+    visualize_landmark(image_array=face, landmarks=landmarks)
+    plt.show()
