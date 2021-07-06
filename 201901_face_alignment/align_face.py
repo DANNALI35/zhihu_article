@@ -51,7 +51,7 @@ def align_face(image_array, landmarks):
                   (left_eye_center[1] + right_eye_center[1]) // 2)
     # at the eye_center, rotate the image by the angle
     rotate_matrix = cv2.getRotationMatrix2D(eye_center, angle, scale=1)
-    rotated_img = cv2.warpAffine(image_array, rotate_matrix, (image_array.shape[0], image_array.shape[1]))
+    rotated_img = cv2.warpAffine(image_array, rotate_matrix, (image_array.shape[1], image_array.shape[0]))
     return rotated_img, eye_center, angle
 
 
