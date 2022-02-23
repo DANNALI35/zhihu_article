@@ -1,0 +1,19 @@
+name: "model_test"
+platform: "onnxruntime_onnx"
+max_batch_size : 256
+input [
+  {
+    name: "images"
+    data_type: TYPE_FP16
+    format: FORMAT_NONE
+    dims: [ 3, -1, -1 ]
+  }
+]
+output [
+  {
+    name: "output"
+    data_type: TYPE_FP16
+    dims: [ 10 ]
+    label_filename: "cifar10_labels.txt"
+  }
+]
